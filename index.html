@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            alert("Diagnostics - JavaScript Error:\n" + message + "\nSource: " + source + "\nLine: " + lineno + "\nCol: " + colno + (error ? "\nStack: " + error.stack : ""));
+            return false;
+        };
+    </script>
+    <title>Hemanth's Study Notes - SaaS Portal</title>
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client (with unpkg fallback) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        if (!window.supabase) {
+            console.warn("Failed to load Supabase from jsdelivr, loading fallback from unpkg...");
+            document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\\/script>');
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Ambient Glowing Blobs -->
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
+
+    <!-- -------------------------------------------------------------
+       GATE SCREEN (PASSWORD CHECK SCREEN)
+    ------------------------------------------------------------- -->
+    <div id="gate-screen" class="gate-screen">
+        <div class="gate-card">
+            <div class="gate-logo">
+                <i data-lucide="book-open"></i>
+            </div>
+            <h2 class="gate-title">Hemanth's Study Notes</h2>
+            <p class="gate-subtitle">Access the student community note sharing hub.</p>
+            
+            <!-- Phase 1: Enter Password -->
+            <div id="gate-input-wrapper">
+                <form id="gate-form">
+                    <div class="form-group">
+                        <label class="form-label" for="gate-password">Gate Password</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="lock" class="input-icon"></i>
+                            <input type="password" id="gate-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        Enter Gate <i data-lucide="arrow-right"></i>
+                    </button>
+                    <div id="gate-error" class="error-msg"></div>
+                </form>
+            </div>
+
+            <!-- Phase 2: User Sign Up / Log In -->
+            <div id="nickname-step" style="display: none;">
+                <!-- Tab Toggles -->
+                <div class="auth-tabs" style="display: flex; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 4px; margin-bottom: 24px;">
+                    <button type="button" id="auth-tab-login" class="auth-tab-btn active" style="flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.08); color: var(--text-primary); border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; transition: var(--transition-fast);">Already a Student</button>
+                    <button type="button" id="auth-tab-signup" class="auth-tab-btn" style="flex: 1; padding: 8px; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 13px; transition: var(--transition-fast);">New Student</button>
+                </div>
+
+                <form id="nickname-form">
+                    <!-- Form Type Tracker -->
+                    <input type="hidden" id="auth-mode" value="login">
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="nickname-input">Account Name / Nickname</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="user" class="input-icon"></i>
+                            <input type="text" id="nickname-input" class="form-input" placeholder="e.g. Hemanth" required maxlength="25">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label class="form-label" for="nickname-password">Account Password</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="key-round" class="input-icon"></i>
+                            <input type="password" id="nickname-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                        <p id="auth-hint" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                            Enter the password you used when creating this account.
+                        </p>
+                    </div>
+                    
+                    <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="margin-top: 10px;">
+                        Enter Dashboard <i data-lucide="chevron-right"></i>
+                    </button>
+                    <div id="nickname-error" class="error-msg"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- -------------------------------------------------------------
+       MAIN APPLICATION LAYOUT (DASHBOARD)
+    ------------------------------------------------------------- -->
+    <div id="app-container" class="app-container" style="display: none;">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-inner">
+                
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i data-lucide="terminal"></i>
+                    </div>
+                    <span class="brand-name">Hemanth's Notes</span>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <ul class="nav-menu">
+                    <li class="nav-item active" data-section="all-notes">
+                        <button><i data-lucide="compass"></i> Browse Notes</button>
+                    </li>
+                    <li class="nav-item" data-section="my-notes">
+                        <button><i data-lucide="folder-heart"></i> My Notes</button>
+                    </li>
+                    <li class="nav-item" data-section="add-note">
+                        <button><i data-lucide="plus-circle"></i> Publish Note</button>
+                    </li>
+                    <li class="nav-item" data-section="audit-logs">
+                        <button><i data-lucide="activity"></i> Activity Logs</button>
+                    </li>
+                    <li class="nav-item" data-section="admin-panel" style="display: none;">
+                        <button style="color: var(--accent);"><i data-lucide="shield-alert"></i> Admin Panel</button>
+                    </li>
+                </ul>
+
+                <!-- Footer User Info & Storage Meter -->
+                <div class="sidebar-footer">
+                    <!-- User metadata -->
+                    <div class="user-profile" style="position: relative; width: 100%; display: flex; align-items: center; gap: 12px;">
+                        <div id="sidebar-avatar" class="user-avatar">US</div>
+                        <div class="user-info" style="flex-grow: 1; overflow: hidden; margin-right: 24px;">
+                            <div id="sidebar-nickname" class="user-nickname">Student</div>
+                            <div id="sidebar-role" class="user-role">Student</div>
+                        </div>
+                        <button id="edit-username-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 4px; transition: var(--transition-fast);" title="Edit Account Name" onmouseover="this.style.color='var(--text-primary)'; this.style.backgroundColor='rgba(255,255,255,0.05)';" onmouseout="this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';">
+                            <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+
+                    <!-- Storage tracker (only for users, hidden for admin) -->
+                    <div id="storage-panel" class="storage-box">
+                        <div class="storage-title">
+                            <span>Storage Usage</span>
+                            <span id="storage-text">0.00 MB / 100 MB</span>
+                        </div>
+                        <div class="storage-track">
+                            <div id="storage-bar" class="storage-bar" style="width: 0%;"></div>
+                        </div>
+                        <div class="storage-text">Max upload capacity is 100MB.</div>
+                    </div>
+
+                    <!-- Logout -->
+                    <button id="logout-btn" class="btn btn-secondary" style="padding: 10px 16px; font-size: 13px;">
+                        <i data-lucide="log-out"></i> Leave Dashboard
+                    </button>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main class="main-area">
+            
+            <!-- HEADER -->
+            <header class="main-header">
+                <div class="page-title-group">
+                    <h1 id="main-page-title">Browse Notes</h1>
+                    <p id="main-page-subtitle">Search and download study notes from the community.</p>
+                </div>
+                <div class="header-actions">
+                    <div style="text-align: right;">
+                        <span style="font-size: 12px; color: var(--text-muted);">Active session:</span>
+                        <div style="font-weight: 600; font-size:14px;" id="header-username">Admin</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- SCROLLABLE CONTENT BODY -->
+            <div class="content-body">
+
+                <!-- SECTION 1: BROWSE ALL NOTES -->
+                <section id="all-notes" class="content-section active">
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <div class="input-wrapper">
+                                <i data-lucide="search" class="input-icon"></i>
+                                <input type="text" id="note-search" class="form-input" placeholder="Search notes by title, content, or author...">
+                            </div>
+                        </div>
+                        <div id="filter-chips" class="category-filters">
+                            <!-- Category chips rendered via JS -->
+                        </div>
+                    </div>
+
+                    <div id="card-grid" class="card-grid">
+                        <!-- Note Cards rendered via JS -->
+                    </div>
+                </section>
+
+                <!-- SECTION 2: MY NOTES -->
+                <section id="my-notes" class="content-section">
+                    <!-- Shares search bar and chip logic, renders user's own notes -->
+                    <div id="my-card-grid" class="card-grid">
+                        <!-- Rendered via JS -->
+                    </div>
+                </section>
+
+                <!-- SECTION 3: WRITE & PUBLISH NOTE -->
+                <section id="add-note" class="content-section">
+                    <div class="note-form-container">
+                        <form id="note-form">
+                            <div class="form-group">
+                                <label class="form-label" for="note-title">Note Title</label>
+                                <input type="text" id="note-title" class="form-input" style="padding-left: 16px;" placeholder="e.g. Physics Chapter 3: Mechanics" required>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label class="form-label" for="note-category">Subject / Tag</label>
+                                    <select id="note-category" class="form-input" style="padding-left: 16px;">
+                                        <option value="Mathematics">Mathematics</option>
+                                        <option value="Science">Science</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="History">History</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="note-content">Note Content (Text & Formulas)</label>
+                                <textarea id="note-content" class="form-input textarea-input" style="padding-left: 16px;" placeholder="Write your notes here..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Attach Notes Image / Diagram (Auto-compressed)</label>
+                                <div id="upload-zone" class="file-upload-zone">
+                                    <i data-lucide="image-plus"></i>
+                                    <h4>Drag & drop study image here</h4>
+                                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Supports PNG, JPG, JPEG. Auto-compressed for faster storage.</p>
+                                    <input type="file" id="file-input" style="display: none;" accept="image/*">
+                                </div>
+
+                                <!-- Compressed Image Preview -->
+                                <div id="upload-preview" class="upload-preview">
+                                    <img id="upload-preview-img" src="" alt="Compressed upload preview">
+                                    <button type="button" id="upload-preview-remove" class="upload-preview-remove" title="Remove attached image">
+                                        <i data-lucide="x"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+                                <i data-lucide="upload-cloud"></i> Publish to Community Board
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- SECTION 4: DOWNLOAD LOGS AUDIT -->
+                <section id="audit-logs" class="content-section">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                        <button id="clear-logs-btn" class="btn btn-danger" style="width: auto; padding: 10px 20px; font-size:13px; display: none;">
+                            <i data-lucide="trash"></i> Purge All Logs (Admin)
+                        </button>
+                    </div>
+                    <div class="logs-card">
+                        <div class="table-responsive">
+                            <table class="logs-table">
+                                <thead>
+                                    <tr>
+                                        <th>User / Actor</th>
+                                        <th>Action Type</th>
+                                        <th>Activity Details</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 5: ADMIN PANEL -->
+                <section id="admin-panel" class="content-section">
+                    <!-- Statistics Grid -->
+                    <div class="admin-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <i data-lucide="files"></i>
+                            </div>
+                            <div>
+                                <div id="stat-total-notes" class="stat-number">0</div>
+                                <div class="stat-label">Total Notes</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <i data-lucide="users"></i>
+                            </div>
+                            <div>
+                                <div id="stat-total-users" class="stat-number">0</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <i data-lucide="database"></i>
+                            </div>
+                            <div>
+                                <div id="stat-total-storage" class="stat-number">0.00 MB</div>
+                                <div class="stat-label">Shared Storage</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">
+                                <i data-lucide="arrow-down-to-line"></i>
+                            </div>
+                            <div>
+                                <div id="stat-total-downloads" class="stat-number">0</div>
+                                <div class="stat-label">Total Downloads</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split Panels: User Management and Blocklist -->
+                    <div class="admin-sections-grid">
+                        <!-- Active accounts storage usage -->
+                        <div class="admin-section-card">
+                            <h3>Active Student Accounts (Storage stats)</h3>
+                            <div id="admin-users-list">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Blocked Users list -->
+                        <div class="admin-section-card">
+                            <h3>Access Blocklist</h3>
+                            <form id="block-user-form" style="margin-bottom: 20px; display: flex; gap: 10px;">
+                                <input type="text" id="block-user-input" class="form-input" style="padding-left:16px;" placeholder="Enter account name to block..." required>
+                                <button type="submit" class="btn btn-primary" style="width: auto; padding: 0 20px;">Block</button>
+                            </form>
+                            <div id="admin-blocked-list">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+    </div>
+
+    <!-- NOTE DETAILS MODAL -->
+    <div id="note-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close" title="Close"><i data-lucide="x"></i></button>
+            <h2 id="modal-title" class="modal-note-title">Note Title</h2>
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">
+                Published by <span id="modal-author" style="color: var(--primary); font-weight:600;">Author</span> on <span id="modal-date">Date</span>
+            </div>
+            <img id="modal-image" class="modal-note-image" src="" alt="Note attachment">
+            <pre id="modal-content" class="modal-note-content">Note content goes here...</pre>
+            
+            <div style="border-top:1px solid var(--border-color); margin-top:30px; padding-top:20px; display:flex; justify-content:flex-end;">
+                <button id="modal-download-btn" class="btn btn-primary" style="width: auto;">
+                    <i data-lucide="download"></i> Download Note (.txt)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
